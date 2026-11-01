@@ -7,15 +7,14 @@ void loopBindingMode() {
   static unsigned long lastBindSend = 0;
   static unsigned long lastDebugStatus = 0;
   
-  displayMsg("BINDING...");
+  // BINDING: Medium contrast (100) and blink mode 2 for pairing visibility
+  displayMsg("BINDING...", 100, 2);
 
-  // Print a heartbeat status every second so we know the loop is running and tracking flags
   if (millis() - lastDebugStatus > 1000) {
     lastDebugStatus = millis();
     Serial.printf("[LOOP-BIND] Controller searching... ReceiveBindingComplete flag = %d\n", ReceiveBindingComplete);
   }
 
-  // Broadcast bind request packets (protocolMode = 0) every 200ms
   if (millis() - lastBindSend > 200) {
     lastBindSend = millis();
     

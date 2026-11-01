@@ -18,11 +18,11 @@ boolean ActiveMenu(){
       MenuActive = true;
       CurrentMenuItem = 0;
       SelectActive = false;
-      displayMsg(Menu[CurrentMenuItem].label);
+      displayMsg(Menu[CurrentMenuItem].label, 255, 1);
     }else{
       MenuActive = false;
       SelectActive = false;
-      displayMsg("WAITING");            
+      displayMsg("WAITING", 40, 2);            
     }
   }  
 
@@ -42,7 +42,6 @@ boolean ActiveMenu(){
 }
 
 //**********************************************************************************************
-//**********************************************************************************************
 void SelectButtonPressed(){
   selectDebounceTime = millis();
   if(SelectActive == false){
@@ -50,7 +49,6 @@ void SelectButtonPressed(){
     for (int i = 0; i < MenuItems; i++){
       tempSettings[i] = currentSettings[i];
       
-      // Capture live raw ADC offset (-512 to 512) around the 2048 center point
       if (strcmp(Menu[CurrentMenuItem].label, "JOYSTICK ZERO-X") == 0 ) {
         tempSettings[CurrentMenuItem] = constrain(analogRead(JOYSTICK_VERT_PIN) - 2048, -512, 512);                    
       }
@@ -76,12 +74,11 @@ void SelectButtonPressed(){
     preferences.end();
     Serial.println("Settings saved to NVS successfully.");
     
-    // If DEFAULTS was triggered, show explicit visual feedback and exit menu mode
     if (strcmp(Menu[CurrentMenuItem].label, "DEFAULTS") == 0 ){
-      displayMsg("RESET OK!");
-      delay(1000); // Hold message for 1 second so you can read it
-      MenuActive = false; // Exit menu back to normal operating mode
-      displayMsg("WAITING");
+      displayMsg("RESET OK!", 255, 1);
+      delay(1000); 
+      MenuActive = false; 
+      displayMsg("WAITING", 40, 2);
       return;
     }
     
@@ -89,7 +86,7 @@ void SelectButtonPressed(){
       Serial.println("running A test");
       runtest(); 
     }
-    displayMsg(Menu[CurrentMenuItem].label);
+    displayMsg(Menu[CurrentMenuItem].label, 255, 1);
   }  
 }
 
@@ -98,7 +95,7 @@ void AdjustParameterValues(){
   int stepSize = 1;
   if (strcmp(Menu[CurrentMenuItem].label, "JOYSTICK ZERO-X") == 0 || 
       strcmp(Menu[CurrentMenuItem].label, "JOYSTICK ZERO-Y") == 0) {
-    stepSize = 10; // Fast scroll for offset values
+    stepSize = 10; 
   }
 
   if (UpButton == true && (millis() - navDebounceTime) > 150){
@@ -112,26 +109,31 @@ void AdjustParameterValues(){
     DisplayParameterValue();
   }
 }
+
 //**********************************************************************************************
 void DisplayParameterValue(){
   char buf2[50];
   if(strcmp(Menu[CurrentMenuItem].label, "TEST TRIM") == 0 ){
-    sprintf (buf2, "%2i sec", tempSettings[2]);        
-    displayMsg(buf2);  
+    sprintf (buf2, "%2i sec", tempSettings[CurrentMenuItem]);        
+    displayMsg(buf2, 255, 1);  
+  }else if(strcmp(Menu[CurrentMenuItem].label, "STEER RATE") == 0 ||
+           strcmp(Menu[CurrentMenuItem].label, "STEER EXPO") == 0 ){
+    sprintf (buf2, "%3i%%", tempSettings[CurrentMenuItem]); // Formats as percentage e.g. " 40%"
+    displayMsg(buf2, 255, 1);
   }else if(strcmp(Menu[CurrentMenuItem].label, "MOTOR \"A\" DIRECTION") == 0 ||
            strcmp(Menu[CurrentMenuItem].label, "MOTOR \"B\" DIRECTION") == 0 ||
            strcmp(Menu[CurrentMenuItem].label, "MOTOR A-B RIGHT-LEFT")  == 0 ){
-    if(tempSettings[CurrentMenuItem] == 0) displayMsg("NORMAL");
-    if(tempSettings[CurrentMenuItem] == 1) displayMsg("REVERSE");
+    if(tempSettings[CurrentMenuItem] == 0) displayMsg("NORMAL", 255, 1);
+    if(tempSettings[CurrentMenuItem] == 1) displayMsg("REVERSE", 255, 1);
   }else if(strcmp(Menu[CurrentMenuItem].label, "DEFAULTS") == 0 ){
-    displayMsg("CONFIRM");      
+    displayMsg("CONFIRM", 255, 1);      
   }else if(strcmp(Menu[CurrentMenuItem].label, "POWER ON TUNE") == 0 ){    
     char* copy = strdup(songs2[tempSettings[CurrentMenuItem]]);   
-    displayMsg(strtok(copy,":"));   
+    displayMsg(strtok(copy,":"), 255, 1);   
     free(copy);   
   }else{ 
     sprintf (buf2, "%5i", tempSettings[CurrentMenuItem]);
-    displayMsg(buf2);      
+    displayMsg(buf2, 255, 1);      
   }    
 }
 
@@ -140,42 +142,50 @@ void CycleMenuItems(){
   if (UpButton == true && (millis() - navDebounceTime) > 150){
     navDebounceTime = millis();  
     CurrentMenuItem = (CurrentMenuItem + 1) % MenuItems;
-    displayMsg(Menu[CurrentMenuItem].label);   
+    displayMsg(Menu[CurrentMenuItem].label, 255, 1);   
   }
   if (DownButton == true && (millis() - navDebounceTime) > 150){
     navDebounceTime = millis();  
     CurrentMenuItem = (CurrentMenuItem + MenuItems - 1) % MenuItems;
-    displayMsg(Menu[CurrentMenuItem].label);   
+    displayMsg(Menu[CurrentMenuItem].label, 255, 1);   
   }
 }
 
 //**********************************************************************************************
+//**********************************************************************************************
 void runtest(){
   char buf2[10];
+  
+  // 1. FORWARD TEST FIRST (Using -1023 since your normal forward throttle maps to negative rawY)
   uint32_t runtime = millis() + (currentSettings[2]*1000);
   while (millis() < runtime){
-    CalculateMotorDriverValues(currentSettings[10], 1023);  
+    CalculateMotorDriverValues(currentSettings[10], -1023);  
     sprintf (buf2, "%4.1f Secs", (runtime-millis())/1000.0);
-    displayMsg(buf2);
+    displayMsg(buf2, 255, 1);
     delay(20);
     yield();
   }
+  
+  // PAUSE / NEUTRAL (1 second center stick)
   runtime = millis() + 1000;  
   while (millis() < runtime){
     CalculateMotorDriverValues(currentSettings[10], currentSettings[11]);  
     sprintf (buf2, "%4.1f Secs", (runtime-millis())/1000.0);
-    displayMsg(buf2);
+    displayMsg(buf2, 255, 1);
     delay(20);
     yield();
   }
+  
+  // 2. REVERSE TEST SECOND (Using +1023 for reverse throttle)
   runtime = millis() + (currentSettings[2]*1000);  
   while (millis() < runtime){
-    CalculateMotorDriverValues(currentSettings[10], -1023);  
+    CalculateMotorDriverValues(currentSettings[10], 1023);  
     sprintf (buf2, "%4.1f Secs", (runtime-millis())/1000.0);
-    displayMsg(buf2);
+    displayMsg(buf2, 255, 1);
     delay(20);
     yield();
   }
+  
   Serial.println("test done");
   CalculateMotorDriverValues(currentSettings[10], currentSettings[11]);  
 }

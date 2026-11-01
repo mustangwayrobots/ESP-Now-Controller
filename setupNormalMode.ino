@@ -40,7 +40,7 @@ void setupNormalMode() {
     Serial.println("[ERR] ESP-NOW initialization crashed in drive mode setup!");
     return;
   }
-
+  WiFi.setSleep(true);
   esp_wifi_set_channel(calculatedChannel, WIFI_SECOND_CHAN_NONE);
  
   // --- REGISTER CAR PEER USING LOADED MAC ---

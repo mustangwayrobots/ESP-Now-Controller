@@ -44,7 +44,6 @@ int Speed_B = 0;
 int joystickX;
 int joystickY;
 boolean MenuMode;
-const int MenuItems = 15;
 
 struct __attribute__((packed)) RC_Packet_Structure {
   uint8_t protocolMode; // 0 = Bind Request, 1 = Normal Drive, 2 = Bind Acknowledgement
@@ -56,28 +55,33 @@ struct __attribute__((packed)) RC_Packet_Structure {
 RC_Packet_Structure SendingData;
 RC_Packet_Structure ReceivingData;
 
+const int MenuItems = 16;
+
 struct menuStruct {
   char label[21];
   int min;
   int max;
 } Menu[] = {
-  {"MAX SPEED", 1, 128},
-  {"TRIM", -127, 127},
-  {"TEST TRIM", 1, 10},
-  {"STEER RATE", 1, 127},
-  {"MOTOR \"A\" DIRECTION", 0, 1},
-  {"MOTOR \"B\" DIRECTION", 0, 1},
-  {"MOTOR A-B RIGHT-LEFT", 0, 1},
-  {"SPIN SPEED", 0, 127},
-  {"WEAPON ON VALUE", 0, 180},
-  {"WEAPON OFF VALUE", 0, 180},
-  {"JOYSTICK ZERO-X", -512, 512},
-  {"JOYSTICK ZERO-Y", -512, 512},
-  {"JOYSTICK DEAD ZONE", 0, 127},
-  {"POWER ON TUNE", 0, 94},
-  {"DEFAULTS", 0, 0}
+  {"MAX SPEED", 1, 128},          // Index 0
+  {"TRIM", -127, 127},            // Index 1
+  {"TEST TRIM", 1, 10},           // Index 2
+  {"STEER RATE", 10, 100},        // Index 3
+  {"STEER EXPO", 0, 100},         // Index 4
+  {"MOTOR \"A\" DIRECTION", 0, 1},// Index 5
+  {"MOTOR \"B\" DIRECTION", 0, 1},// Index 6
+  {"MOTOR A-B RIGHT-LEFT", 0, 1}, // Index 7
+  {"SPIN SPEED", 0, 127},         // Index 8
+  {"WEAPON ON VALUE", 0, 180},    // Index 9
+  {"WEAPON OFF VALUE", 0, 180},   // Index 10
+  {"JOYSTICK ZERO-X", -512, 512}, // Index 11
+  {"JOYSTICK ZERO-Y", -512, 512}, // Index 12
+  {"JOYSTICK DEAD ZONE", 0, 127}, // Index 13
+  {"POWER ON TUNE", 0, 94},       // Index 14
+  {"DEFAULTS", 0, 0}              // Index 15
 };
-int defaultSettings[MenuItems] = {128, 0 ,3, 110, 0, 0, 0, 128, 80, 0, 0, 0, 20, 0, 0};
+
+// Exactly 16 default values corresponding to indices 0 through 15
+int defaultSettings[MenuItems] = {128, 0, 3, 40, 60, 0, 0, 0, 128, 80, 0, 0, 0, 20, 0, 0};
 int tempSettings[MenuItems];
 int currentSettings[MenuItems];
 
@@ -87,7 +91,7 @@ void setupBindingMode();
 void loopNormalMode();    
 void loopBindingMode();
 void readInputs();
-void displayMsg(const char *NewMessage);
+void displayMsg(const char *NewMessage, int contrast = 255, int blinkMode = 1);
 void CalculateMotorDriverValues(int rawX, int rawY);
 void SendData();
 boolean ActiveMenu();
@@ -95,6 +99,7 @@ void play_rtttl(int TonePin, const char *p);
 void Beep(int BeepFrequency, int BeepPeriod, int BeepDuration);
 
 void setup() {
+  setCpuFrequencyMhz(80); // Drops clock to 80MHz, saving considerable active power
   Serial.begin(115200); 
   Serial.println("");
   
@@ -135,8 +140,8 @@ void setup() {
   if (MenuButton == false){
     NormalMode = true;
     
-    // Play power-on tune ONLY when starting in normal mode (Index 13)
-    int tuneIndex = currentSettings[13];
+    // Play power-on tune ONLY when starting in normal mode (Index 15 with shift)
+    int tuneIndex = currentSettings[14];
     if (tuneIndex > 0 && tuneIndex < 94) {
       play_rtttl(PIEZO_PIN, songs2[tuneIndex]);
     }
