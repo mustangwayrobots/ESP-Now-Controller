@@ -1,13 +1,23 @@
 /**
  * ==============================================================================
- * loopBindingMode.ino (Controller - Instrumented Loop Status)
+ * loopBindingMode.ino - Controller Binding Loop with Release Button Prompt
  * ==============================================================================
  */
 void loopBindingMode() {
   static unsigned long lastBindSend = 0;
   static unsigned long lastDebugStatus = 0;
   
-  // BINDING: Medium contrast (100) and blink mode 2 for pairing visibility
+  // 1. Always refresh inputs on every loop cycle to catch button releases
+  readInputs();
+
+  // 2. If the user is still holding down the menu button at boot, prompt them to let go
+  if (MenuButton == true) { // MenuButton is true (LOW) when pressed
+    displayMsg("RELEASE BTN", 100, 1);
+    delay(50);
+    return; // Stay here and skip broadcasting until the button is released
+  }
+
+  // 3. Once released, proceed with active binding display and broadcasts
   displayMsg("BINDING...", 100, 2);
 
   if (millis() - lastDebugStatus > 1000) {

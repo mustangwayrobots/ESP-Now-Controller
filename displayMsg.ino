@@ -1,7 +1,7 @@
 // ==============================================================================
-// displayMsg.ino - Display Message Routine with Contrast and Blink Control
+// displayMsg.ino - Display Message Routine with Contrast, Blink, and Font Control
 // ==============================================================================
-void displayMsg(const char *NewMessage, int contrast, int blinkMode) {
+void displayMsg(const char *NewMessage, int contrast, int blinkMode, bool smallFont) {
   static char currentMessage[50];
   static uint32_t blinkMillis = 0;
   static boolean displayState = true;
@@ -12,33 +12,34 @@ void displayMsg(const char *NewMessage, int contrast, int blinkMode) {
   // Apply hardware contrast setting
   u8g2.setContrast(contrast);
 
-  // Handle blink duty cycle (blinkMode: 1 = solid ON, 2 = 50% duty, 3 = 33% duty, etc.)
-// Handle blink duty cycle (blinkMode: 1 = solid ON, 2 = 1 second interval, etc.)
+  // Handle blink duty cycle
   if (blinkMode > 1) {
-    unsigned long interval = 1000 * (blinkMode - 1); // 1 second per step
+    unsigned long interval = 1000 * (blinkMode - 1); 
     if (millis() - blinkMillis > interval) {
       blinkMillis = millis();
       displayState = !displayState;
     }    
-    // If duty cycle puts us in the "OFF" phase, force power save blanking
     if (!displayState) {
       u8g2.setPowerSave(1);
       return;
     }
   }
   
-  // Ensure power save is off when displaying
   u8g2.setPowerSave(0);
 
   if(strcmp(currentMessage, NewMessage) != 0){
     strcpy(currentMessage, NewMessage);
-    if (strlen(currentMessage) <= 9){
-      u8g2.clearBuffer();          
+    
+    u8g2.clearBuffer();          
+    
+    if (smallFont) {
+      // Use a compact 5x8 / 6x10 font for multi-line UI layouts (like Help screens)
+      u8g2.setFont(u8g2_font_6x10_tf);
+      u8g2.drawStr(0, 9, currentMessage); // Allows top description row and a bottom footer row
+    } else if (strlen(currentMessage) <= 9){
       u8g2.setFont(u8g2_font_inb16_mr); 
       u8g2.drawStr(0, 24, currentMessage); 
-      u8g2.sendBuffer();          
-
-    }else{
+    } else {
       int count = 0;
       orignal = strdup(NewMessage);
       theRest = orignal;
@@ -54,7 +55,6 @@ void displayMsg(const char *NewMessage, int contrast, int blinkMode) {
           myLine[count] = String(token);          
         }
       } 
-      u8g2.clearBuffer();          
       u8g2.setFont(u8g2_font_luBS14_tf);      
       for(int i = 0; i <= count; ++i){
         int str_len = myLine[i].length() + 1;
@@ -62,9 +62,9 @@ void displayMsg(const char *NewMessage, int contrast, int blinkMode) {
         myLine[i].toCharArray(char_array, str_len);        
         u8g2.drawStr(0, ((i+1)*16)-2, char_array); 
       }
-      u8g2.sendBuffer();          
-
-      free(orignal); // Prevents heap memory leaks
-    }   
+      free(orignal);
+    }
+    
+    u8g2.sendBuffer();          
   }
 }

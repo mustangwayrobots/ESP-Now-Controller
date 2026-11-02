@@ -13,13 +13,13 @@ void readInputs() {
     int rawY = constrain(analogRead(JOYSTICK_HORZ_PIN), 0, 4095); 
     int rawX = constrain(analogRead(JOYSTICK_VERT_PIN), 0, 4095);
     
-    // Match index 10 to X and index 11 to Y
-    int zeroX = 2048 + currentSettings[10]; 
-    int zeroY = 2048 + currentSettings[11];
+    // Use name-based lookups for joystick zero calibration ( completely index-independent!)
+    int zeroX = getSetting("JOYSTICK ZERO-X"); 
+    int zeroY = getSetting("JOYSTICK ZERO-Y");
 
     // Fallback to absolute center (2048) if uncalibrated
-    if (zeroX == 0) zeroX = 2048;
-    if (zeroY == 0) zeroY = 2048;
+    if (zeroX < 1800 || zeroX > 2300) zeroX = 2048;
+    if (zeroY < 1800 || zeroY > 2300) zeroY = 2048;   
 
     // Normalize raw ADC around the calibrated zero point into -1023 to 1023 range
     if (rawY >= zeroY) {
